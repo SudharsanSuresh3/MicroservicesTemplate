@@ -1,0 +1,51 @@
+# docker-compose.yml
+
+version: '3'
+
+services:
+  fastapi:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    expose:
+      - "8010"  # Expose FastAPI app on port 8010
+    networks:
+      - app-network
+    depends_on:
+      - rabbitmq
+
+  nameko:
+    build:
+      context: ./microservices
+      dockerfile: Dockerfile
+    container_name: nameko-service
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  # RabbitMQ default port for Nameko
+      - "15672:15672"  # RabbitMQ management plugin port
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx-server
+    ports:
+      - "8010:80"  # Map port 8010 on host to port 80 on NGINX
+    depends_on:
+      - fastapi
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
